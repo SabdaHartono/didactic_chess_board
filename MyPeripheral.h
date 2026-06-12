@@ -1,12 +1,11 @@
 #pragma once
 #include <ArduinoBleChess.h>
-# define buzzer 8
+# define buzzer 3
 
 
 extern uint8_t scan_board(uint8_t color);
 extern void out_led(uint8_t square, uint8_t color);
 extern void shift_register(uint16_t shift_data);
-extern void out_led2(uint16_t rank_bit, uint16_t display_bit);
 typedef struct
 {
   uint8_t move_from;
@@ -896,8 +895,9 @@ void select_option(uint8_t square){
   _status = 0;
   out_led(square, 0x20);
   digitalWrite(buzzer, HIGH);
-  _buzzer_count = 1;
-  _time_limit = millis() + 500;
+  delay(500);
+  shift_register(0xffff);
+  digitalWrite(buzzer, LOW);
 }
 
 void board_move(void){
@@ -1171,25 +1171,20 @@ void board_move(void){
       case 0:   //end game_status
         switch(_running_led){
           case 0:
-            out_led2(0xffbf, 8);
+            out_led(0x1b, 0x20);
             break;
           case 1:
-            out_led2(0xffbf, 16);
+            out_led(0x1c, 0x20);
             break;
           case 2:
-            out_led2(0xffbf, 32);
+            out_led(0x24, 0x20);
             break;
           case 3:
-            out_led2(0xfeff, 32);
+            out_led(0x23, 0x20);
             break;
-          case 4:
-            out_led2(0xfeff, 16);
-            break;
-          case 5:
-            out_led2(0xfeff, 8);
         }
         _running_led++; 
-        if (_running_led > 5){
+        if (_running_led > 3){
           _running_led = 0;
           square = scan_board(0x20);
           if (square != 64){ //press square, select option
