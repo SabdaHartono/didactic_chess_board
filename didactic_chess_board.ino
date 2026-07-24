@@ -16,7 +16,23 @@
 
 # define clock 39
 # define data 21
-# define latch 38
+# define latch 38 */
+
+//pin on esp32 c3 luatos
+# define buzzer 12
+
+# define file_a 6
+# define file_b 7
+# define file_c 5
+# define file_d  4
+# define file_e 2
+# define file_f 3
+# define file_g 10
+# define file_h 1
+
+# define clock 0
+# define data 21
+# define latch 20
 
 #ifdef BLE_CHESS_LOGS
 #ifndef ARDUINO_ARCH_ESP32
@@ -169,6 +185,102 @@ uint8_t get_file_value(){
     return 8;
 }
 
+
+
+void draw_matrix(uint8_t from, uint8_t color, uint8_t* led_matrix){
+  uint8_t i, dest, rank, file;
+  for (i = 0; i < 8 ; i++){led_matrix[i] = 0;}
+  for (i = 0; i < list_idx; i += 3){
+    if (move_list[i] == from) {
+      dest = move_list[i+1];
+      rank = (dest & 0b00111000) >> 3;
+      file = dest & 0b00000111;
+      Serial.print("rank: ");
+      Serial.print(rank);
+      Serial.print(" file: ");
+      Serial.println(file);
+
+      if (color == 0x20){
+        led_matrix[rank] |= (128 >> file);
+      }
+      else {
+        led_matrix[7 - rank] |= (1 << file);
+      }
+    }
+  }
+
+}
+
+void outled2(uint8_t led_bit){
+  if (led_bit & 128){pinMode(file_a, INPUT);} else {pinMode(file_a, OUTPUT); digitalWrite(file_a, LOW);}
+  if (led_bit & 64){pinMode(file_b, INPUT);} else {pinMode(file_b, OUTPUT); digitalWrite(file_b, LOW);}
+  if (led_bit & 32){pinMode(file_c, INPUT);} else {pinMode(file_c, OUTPUT); digitalWrite(file_c, LOW);}
+  if (led_bit & 16){pinMode(file_d, INPUT);} else {pinMode(file_d, OUTPUT); digitalWrite(file_d, LOW);}
+  if (led_bit & 8){pinMode(file_e, INPUT);} else {pinMode(file_e, OUTPUT); digitalWrite(file_e, LOW);}
+  if (led_bit & 4){pinMode(file_f, INPUT);} else {pinMode(file_f, OUTPUT); digitalWrite(file_f, LOW);}
+  if (led_bit & 2){pinMode(file_g, INPUT);} else {pinMode(file_g, OUTPUT); digitalWrite(file_g, LOW);}
+  if (led_bit & 1){pinMode(file_h, INPUT);} else {pinMode(file_h, OUTPUT); digitalWrite(file_h, LOW);}
+}
+
+void black_out(void){
+   pinMode(file_a, OUTPUT);
+  digitalWrite(file_a, LOW);
+    
+  pinMode(file_b, OUTPUT);
+  digitalWrite(file_b, LOW);
+
+  pinMode(file_c, OUTPUT);
+  digitalWrite(file_c, LOW);
+
+  pinMode(file_d, OUTPUT);
+  digitalWrite(file_d, LOW);
+
+  pinMode(file_e, OUTPUT);
+  digitalWrite(file_e, LOW);
+
+  pinMode(file_f, OUTPUT);
+  digitalWrite(file_f, LOW);
+
+  pinMode(file_g, OUTPUT);
+  digitalWrite(file_g, LOW);
+
+  pinMode(file_h, OUTPUT);
+  digitalWrite(file_h, LOW);
+
+}
+
+void display_matrix(uint8_t* led_matrix, uint16_t n){
+  int i, j;
+
+  black_out();
+  shift_register(0xfffe);
+  digitalWrite(latch, LOW);
+  for (i = 0; i < n ; i++){
+    for (j = 7 ; j >= 0; j--){
+      outled2(led_matrix[j]);
+      delay(1);
+      
+      digitalWrite(latch, LOW);
+      digitalWrite(data, HIGH);
+      digitalWrite(clock, LOW);
+      delayMicroseconds(500);
+      digitalWrite(clock, HIGH);
+      delayMicroseconds(500);
+
+      if (j == 0){
+        digitalWrite(data, LOW);
+      }
+      digitalWrite(clock, LOW);
+      delayMicroseconds(500);
+      digitalWrite(clock, HIGH);
+      delayMicroseconds(500);
+      black_out();
+      digitalWrite(latch, HIGH);
+    }
+ }
+}
+
+
 uint8_t scan_board(uint8_t color){
     int i;
     uint8_t square, num;
@@ -250,6 +362,7 @@ void setup() {
 
   eboard_init();
 }
+
 
 
 void loop() {
