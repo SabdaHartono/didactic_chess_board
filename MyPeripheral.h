@@ -1,11 +1,16 @@
 #pragma once
 #include <ArduinoBleChess.h>
-# define buzzer 3
+//pin on banana pi pico hard ware
+//# define buzzer 3
 
+//pin on esp32 c3 luatos
+# define buzzer 12
 
 extern uint8_t scan_board(uint8_t color);
 extern void out_led(uint8_t square, uint8_t color);
 extern void shift_register(uint16_t shift_data);
+extern void draw_matrix(uint8_t from, uint8_t color, uint8_t* led_matrix);
+extern void display_matrix(uint8_t* led_matrix, uint16_t n);
 typedef struct
 {
   uint8_t move_from;
@@ -27,6 +32,8 @@ uint8_t offset[] = {
 
 uint8_t piece_type[] = {
     0x01, 0x02, 0x0b, 0x0c, 0x0d, 0x06};
+
+uint8_t led_moves[8];
 
 int list_idx;
 uint8_t move_list[300], board[64];
@@ -881,29 +888,44 @@ void select_option(uint8_t square){
   if (square == 0x3f){
     _board_mode = 1;
     Serial.println("Board mode: play vs computer");
+
+    _status = 0;
+    out_led(square, 0x20);
+    digitalWrite(buzzer, HIGH);
+   delay(500);
+    shift_register(0xffff);
+    digitalWrite(buzzer, LOW);
   }
   else if (square == 0x37){
     _orientation = 0x20;
     _board_mode = 2;
     Serial.println("Board mode: plan on line");
     Serial.println("Board orientation normal");
+
+    _status = 0;
+    out_led(square, 0x20);
+    digitalWrite(buzzer, HIGH);
+    delay(500);
+    shift_register(0xffff);
+    digitalWrite(buzzer, LOW);
   }
   else if (square == 0x2f){
     _board_mode = 3;
     Serial.println("Board mode: play on the board");
+
+    _status = 0;
+    out_led(square, 0x20);
+   digitalWrite(buzzer, HIGH);
+    delay(500);
+    shift_register(0xffff);
+    digitalWrite(buzzer, LOW);
   }
-  _status = 0;
-  out_led(square, 0x20);
-  digitalWrite(buzzer, HIGH);
-  delay(500);
-  shift_register(0xffff);
-  digitalWrite(buzzer, LOW);
 }
 
 void board_move(void){
   static uint8_t selected_square;
   static uint8_t scan_counter = 20;
-  static bool wait_release = false, long_press = false;
+  static bool wait_release = false, long_press = false, ilegal = false;
   static uint32_t press_time;
   uint8_t square, file;
   int i;
@@ -1015,6 +1037,15 @@ void board_move(void){
         wait_release = true;
         selected_square = square;
         _status = 2; //next state scan for move to
+        draw_matrix(_move_from, _orientation, led_moves);
+        //debug
+        for (i = 0; i < 8; i++){
+          Serial.print("led_moves rank: ");
+          Serial.print(i);
+          Serial.print(", ");
+          Serial.println(led_moves[i]);
+        }
+        ilegal = false;
       }
       else { //
         Serial.print("pressed square(move from): ");
@@ -1032,6 +1063,7 @@ void board_move(void){
     case 2: ///scan for move-to in peripheral turn
       out_led(_move_from, _orientation);
       square = scan_board(_orientation);
+      if (ilegal && (square == 64)){display_matrix(led_moves, 10); square = scan_board(_orientation);}
       if (square == 64) {break; } //peripheral do not press any square
       Serial.print("pressed square(move to): ");
       Serial.println(square);
@@ -1074,6 +1106,7 @@ void board_move(void){
         _time_limit = millis() + 500;
          wait_release = true;
         selected_square = 64;
+        ilegal = true;
       }
       break;
       case 3:

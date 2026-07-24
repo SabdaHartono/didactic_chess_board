@@ -2,6 +2,7 @@
 #include "MyPeripheral.h"
 
 //pin on banana pi pico hard ware
+/*
 # define buzzer 3
 
 # define file_a 17
